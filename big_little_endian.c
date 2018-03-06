@@ -11,7 +11,7 @@
 
 /**
  *name:check_endian
- *brief:进行大小端检测
+ *brief:进行大小端检测，利用联合体union的存放顺序是所有成员都从低地址开始存放这一特性.
  *param:none
  *retval: 1大端模式，0 小端模式
  * */
