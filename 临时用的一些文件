@@ -1,0 +1,115 @@
+/************************************************
+*
+* filename: 		Delay.c
+* auhor:				zhouwei
+* version:		  v1.0
+* date:					2018.3.27
+* Copyright: 		Your copyright notice
+*	brief: 				基于STM32F407的FreeRTOS延时函数,
+*
+************************************************/
+
+#include "delay.h"
+#include "FreeRTOS.h"					//FreeRTOS使用		  
+#include "task.h"
+
+uint32_t fac_ms;
+uint8_t fac_us;
+
+/*
+extern void xPortSysTickHandler(void);
+//syttick中断服务函数
+void SysTick_Handler(void)
+{
+	if(xTaskGetSchedulerState() != taskSCHEDULER_NOT_STARTED)
+	{
+		xPortSysTickHandler();
+	}
+}
+*/
+
+void Delay_init(uint8_t SYSCLK)
+{
+	uint32_t reload;
+	SysTick_CLKSourceConfig(SysTick_CLKSource_HCLK); //SYSTICK时钟频率为HCLK时钟
+	
+	fac_us = SYSCLK;
+	reload = SYSCLK;
+	reload *= 1000000/configTICK_RATE_HZ; 
+	fac_ms = 1000/configTICK_RATE_HZ;
+	SysTick->CTRL |= SysTick_CTRL_TICKINT_Msk;
+	SysTick->LOAD = reload;
+	SysTick->CTRL |= SysTick_CTRL_ENABLE_Msk;
+}
+
+
+//微秒级延时
+void Delay_us(uint32_t nus)
+{
+	uint32_t ticks;
+	uint32_t told,tnow,tcnt= 0;
+	uint32_t reload = SysTick -> LOAD;
+	ticks = nus*fac_us;
+	told = SysTick -> VAL;
+	while(1)
+	{
+		tnow = SysTick->VAL;
+		if(tnow != told)
+		{
+			if(tnow < told)
+				tcnt += told - tnow;
+			else
+				tcnt += reload - tnow + told;
+			told = tnow;
+			if(tcnt >= ticks)
+				break;
+		}
+		
+	};	
+}
+
+/**
+*	name:	Delay_ms
+* brief: 	进行ms级延时  会引起任务调度
+* param: 	msVal要设置延时数
+* retval:	None	
+**/
+void Delay_ms(uint16_t msVal)
+{
+	if(xTaskGetSchedulerState() != taskSCHEDULER_NOT_STARTED)
+	{
+		if(msVal >= fac_ms)
+		{
+			vTaskDelay(msVal/fac_ms);
+		}
+		msVal %= fac_ms;
+	}
+	Delay_us((uint32_t)(msVal*1000));
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
